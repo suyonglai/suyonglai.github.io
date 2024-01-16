@@ -5,12 +5,30 @@
 	</head>
 	<body>
 		<gradio-lite>
-		import gradio as gr
-
-		def greet(name):
-			return "Hello, " + name + "!"
-		
-		gr.Interface(greet, "textbox", "textbox").launch()
+import gradio as gr
+# import dashscope
+import requests
+api_key = "sk-78c45d761ed04af2b965b43cd522108b"
+# dashscope.api_key = api_key
+def predict(message, history):
+	history_openai_format = [{'role': 'system', 'content': '你是黑龙江哈尔滨市双城区地方自媒体公众号双城信息港的AI客服，你的名字叫小双，如果有人问你问题，请优先考虑是关于双城区的问题'}] 
+	for human, assistant in history:
+		history_openai_format.append({"role": "user", "content": human })
+		history_openai_format.append({"role": "assistant", "content":assistant})
+		history_openai_format.append({"role": "user", "content": message})
+			
+#	response = dashscope.Generation.call(
+#				'qwen-72b-chat',
+#				messages= history_openai_format ,
+#				result_format='message' )
+	history_openai_format = json.dumps(history_openai_format)
+	response = requests.post('https://qinwen-openai-raerjwegdj.cn-hangzhou.fcapp.run', data=history_openai_format)
+	response=json.loads(response.text)
+	partial_message = ""
+	partial_message = partial_message+response["output"]["choices"][0]["message"]["content"]
+	return partial_message
+			
+	gr.ChatInterface(predict).launch()
 		</gradio-lite>
 	</body>
 </html>
