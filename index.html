@@ -6,29 +6,53 @@
 	<body>
 		<gradio-lite>
 import gradio as gr
-# import dashscope
 import requests
-api_key = "sk-78c45d761ed04af2b965b43cd522108b"
-# dashscope.api_key = api_key
-def predict(message, history):
-	history_openai_format = [{'role': 'system', 'content': '你是黑龙江哈尔滨市双城区地方自媒体公众号双城信息港的AI客服，你的名字叫小双，如果有人问你问题，请优先考虑是关于双城区的问题'}] 
+from http import HTTPStatus
+import json
+
+
+async def predict(message, history):
+	messages =  [{'role': 'system', 'content': '你是哈尔滨双城区微信公众号双城信息港的AI客服,你叫小双,如果有人问你问题，请优先考虑是关于双城区的问题'}] 
 	for human, assistant in history:
-		history_openai_format.append({"role": "user", "content": human })
-		history_openai_format.append({"role": "assistant", "content":assistant})
-		history_openai_format.append({"role": "user", "content": message})
+		messages.append({"role": "user", "content": human })
+		messages.append({"role": "assistant", "content":assistant})
+	messages.append({'role': 'user', 'content':message})
+	url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"  
+	headers = {  
+    	"Authorization": "Bearer sk-78c45d761ed04af2b965b43cd522108b",  
+    	"Content-Type": "application/json",  
+		
+	}  
+	data = {  
+    	"model": "qwen-72b-chat",  
+   		"input": {  
+        	"messages": messages, 
 			
-#	response = dashscope.Generation.call(
-#				'qwen-72b-chat',
-#				messages= history_openai_format ,
-#				result_format='message' )
-	history_openai_format = json.dumps(history_openai_format)
-	response = requests.post('https://qinwen-openai-raerjwegdj.cn-hangzhou.fcapp.run', data=history_openai_format)
-	response=json.loads(response.text)
+    	},  
+    	"parameters": {"result_format":"message" },  
+	}
+ 
+	response = requests.post(url, headers=headers, json=data)
+	# response= await pyfetch(url,  headers=headers, json=data)
+    
+
+	print(response.text)
+	if response.status_code == HTTPStatus.OK:
+		response=json.loads(response.text)
+		messages.append({'role': response["output"]["choices"][0]["message"]["role"],
+					 'content': response["output"]["choices"][0]["message"]["content"]})
+	else:
+		print('Request id: %s, Status code: %s, error code: %s, error message: %s' % (
+		response.request_id, response.status_code,
+		response.code, response.message
+	))
+
 	partial_message = ""
 	partial_message = partial_message+response["output"]["choices"][0]["message"]["content"]
 	return partial_message
-			
-	gr.ChatInterface(predict).launch()
+
+		
+gr.ChatInterface(predict).launch()
 		</gradio-lite>
 	</body>
 </html>
